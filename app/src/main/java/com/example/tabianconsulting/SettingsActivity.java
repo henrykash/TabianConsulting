@@ -8,6 +8,7 @@ import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -15,6 +16,7 @@ import android.widget.Toast;
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
+import com.example.tabianconsulting.models.User;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.Task;
@@ -24,8 +26,12 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
 import com.google.firebase.auth.SignInMethodQueryResult;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.Query;
+import com.google.firebase.database.ValueEventListener;
 import com.google.firebase.database.annotations.Nullable;
 
 import java.util.List;
@@ -45,6 +51,7 @@ public class SettingsActivity extends AppCompatActivity {
     private Button mSave;
     private ProgressBar mProgressBar;
     private TextView mResetPasswordLink;
+    private ImageView mProfileImage;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -53,22 +60,30 @@ public class SettingsActivity extends AppCompatActivity {
         Log.d(TAG, "onCreate: started.");
         mEmail = (EditText) findViewById(R.id.input_email);
         mCurrentPassword = (EditText) findViewById(R.id.input_password);
-        mSave= (Button) findViewById(R.id.btn_save);
+        mSave = (Button) findViewById(R.id.btn_save);
         mProgressBar = (ProgressBar) findViewById(R.id.progressBar);
         mResetPasswordLink = (TextView) findViewById(R.id.change_password);
-		mName = (EditText) findViewById(R.id.input_name);
-       mPhone = (EditText) findViewById(R.id.input_phone);
+        mName = (EditText) findViewById(R.id.input_name);
+        mPhone = (EditText) findViewById(R.id.input_phone);
+        mProfileImage = (ImageView) findViewById(R.id.profile_image);
 
         setupFirebaseAuth();
-
         setCurrentEmail();
+        hideSoftKeyboard();
+          init();
+          hideSoftKeyboard();
+    }
+
+    private void init() {
+        //calling the getUserAccountData inside init method
+          getUserAccountsData();
 
         mSave.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 Log.d(TAG, "onClick: attempting to save settings.");
 
-                 //see if they changed the email
+                //see if they changed the email
                 if(!mEmail.getText().toString().equals(FirebaseAuth.getInstance().getCurrentUser().getEmail())) {
                     //make sure email and current password fields are filled
                     if (!isEmpty(mEmail.getText().toString())
@@ -85,26 +100,26 @@ public class SettingsActivity extends AppCompatActivity {
                         Toast.makeText(SettingsActivity.this, "Email and Current Password Fields Must be Filled to Save", Toast.LENGTH_SHORT).show();
                     }
                 }
-                    DatabaseReference reference = FirebaseDatabase.getInstance().getReference();
-                    //Changing Name of the user in the settings
-                    if(!mName.getText().toString().equals("")){
-                        reference.child(getString(R.string.dbnode_users))
-                                .child(FirebaseAuth.getInstance().getCurrentUser().getUid())
-                                .child(getString(R.string.field_name))
-                                .setValue(mName.getText().toString());
-
-                    }
-
-                    //Changing the Phone Number of the user in the settings
-                    if(!mPhone.getText().toString().equals("")){
-                        reference.child(getString(R.string.dbnode_users))
-                                .child(FirebaseAuth.getInstance().getCurrentUser().getUid())
-                                .child(getString(R.string.field_phone))
-                                .setValue(mPhone.getText().toString());
-
-                    }
+                DatabaseReference reference = FirebaseDatabase.getInstance().getReference();
+                //Changing Name of the user in the settings
+                if(!mName.getText().toString().equals("")){
+                    reference.child(getString(R.string.dbnode_users))
+                            .child(FirebaseAuth.getInstance().getCurrentUser().getUid())
+                            .child(getString(R.string.field_name))
+                            .setValue(mName.getText().toString());
 
                 }
+
+                //Changing the Phone Number of the user in the settings
+                if(!mPhone.getText().toString().equals("")){
+                    reference.child(getString(R.string.dbnode_users))
+                            .child(FirebaseAuth.getInstance().getCurrentUser().getUid())
+                            .child(getString(R.string.field_phone))
+                            .setValue(mPhone.getText().toString());
+
+                }
+
+            }
 
         });
 
@@ -122,8 +137,70 @@ public class SettingsActivity extends AppCompatActivity {
 
 
 
-        hideSoftKeyboard();
+        hideSoftKeyboard();{
     }
+    }
+
+
+    private void getUserAccountsData(){
+        Log.d(TAG, "getUserAccountsData: getting the users accounts information");
+
+        DatabaseReference reference = FirebaseDatabase.getInstance().getReference();
+        /*
+         ---------------Query method 1 ------------
+         */
+        Query query1 = reference.child(getString(R.string.dbnode_users)) //accessing the database node called users
+                      .orderByKey()
+                       .equalTo(FirebaseAuth.getInstance().getCurrentUser().getUid());
+        query1.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                for (DataSnapshot singleSnapshot: dataSnapshot.getChildren()) {
+                    User user = singleSnapshot.getValue(User.class);
+                    Log.d(TAG, "onDataChange: (QUERY METHOD 1) found user:" + user.toString());
+                    /*-----set the details to the TextView widgets-----
+                     */
+                    mName.setText(user.getName());
+                    mPhone.setText(user.getPhone());
+                }
+            }
+
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+          /*
+         ---------------Query method 2 ------------
+         */
+        Query query2 = reference.child(getString(R.string.dbnode_users)) //accessing the database node called users
+                .orderByChild(getString(R.string.field_user_id))
+                .equalTo(FirebaseAuth.getInstance().getCurrentUser().getUid());
+        query2.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(@NonNull DataSnapshot dataSnapshot) {
+                for (DataSnapshot singleSnapshot: dataSnapshot.getChildren()) {
+                    User user = singleSnapshot.getValue(User.class);
+                    Log.d(TAG, "onDataChange: (QUERY METHOD 2) found user:" + user.toString());
+                    /*-----set the details to the TextView widgets-----
+                     */
+                    mName.setText(user.getName());
+                    mPhone.setText(user.getPhone());
+                }
+                  mEmail.setText(FirebaseAuth.getInstance().getCurrentUser().getEmail());
+            }
+
+
+            @Override
+            public void onCancelled(@NonNull DatabaseError databaseError) {
+
+            }
+        });
+
+
+    }
+
 
     private void sendResetPasswordLink(){
         FirebaseAuth.getInstance().sendPasswordResetEmail(FirebaseAuth.getInstance().getCurrentUser().getEmail())
