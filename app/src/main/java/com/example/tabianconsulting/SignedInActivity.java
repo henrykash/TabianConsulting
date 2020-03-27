@@ -6,6 +6,7 @@ import android.os.Bundle;
 
 import android.util.Log;
 import android.view.Menu;
+import android.view.MenuInflater;
 import android.view.MenuItem;
 
 
@@ -64,8 +65,9 @@ public class SignedInActivity extends AppCompatActivity {
 
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
-        getMenuInflater().inflate(R.menu.options_menu, menu);
-
+       // getMenuInflater().inflate(R.menu.options_menu, menu);
+        MenuInflater inflater=getMenuInflater();
+        inflater.inflate(R.menu.options_menu,menu);
         return true;
     }
 
@@ -76,8 +78,8 @@ public class SignedInActivity extends AppCompatActivity {
                 signOut();
                 return true;
             case R.id.optionAccountSettings:
-              //  Intent intent = new Intent(SignedInActivity.this, SettingActivity.class);
-              // startActivity(intent);
+                Intent intent = new Intent(SignedInActivity.this, SettingsActivity.class);
+               startActivity(intent);
                 return true;
             default:
                 return super.onOptionsItemSelected(item);
@@ -113,7 +115,7 @@ public class SignedInActivity extends AppCompatActivity {
                     startActivity(intent);
                     finish();
                 }
-                // ...
+                //...
             }
         };
     }

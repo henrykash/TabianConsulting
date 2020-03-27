@@ -24,14 +24,18 @@ import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.auth.FirebaseUser;
 
 import com.google.firebase.auth.SignInMethodQueryResult;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.annotations.Nullable;
+
+import java.util.List;
 
 
 public class SettingsActivity extends AppCompatActivity {
 
     private static final String TAG = "SettingsActivity";
 
-    private static final String DOMAIN_NAME = "henry.ca";
+    private static final String DOMAIN_NAME = "gmail.com";
 
     //firebase
     private FirebaseAuth.AuthStateListener mAuthListener;
@@ -52,8 +56,8 @@ public class SettingsActivity extends AppCompatActivity {
         mSave= (Button) findViewById(R.id.btn_save);
         mProgressBar = (ProgressBar) findViewById(R.id.progressBar);
         mResetPasswordLink = (TextView) findViewById(R.id.change_password);
-		//mName = (EditText) findViewById(R.id.input_name);
-       // mPhone = (EditText) findViewById(R.id.input_phone);
+		mName = (EditText) findViewById(R.id.input_name);
+       mPhone = (EditText) findViewById(R.id.input_phone);
 
         setupFirebaseAuth();
 
@@ -65,23 +69,43 @@ public class SettingsActivity extends AppCompatActivity {
                 Log.d(TAG, "onClick: attempting to save settings.");
 
                  //see if they changed the email
-                if(!mEmail.getText().toString().equals(FirebaseAuth.getInstance().getCurrentUser().getEmail())){
+                if(!mEmail.getText().toString().equals(FirebaseAuth.getInstance().getCurrentUser().getEmail())) {
                     //make sure email and current password fields are filled
-                    if(!isEmpty(mEmail.getText().toString())
-                            && !isEmpty(mCurrentPassword.getText().toString())){
+                    if (!isEmpty(mEmail.getText().toString())
+                            && !isEmpty(mCurrentPassword.getText().toString())) {
 
                         //verify that user is changing to a company email address
-                        if(isValidDomain(mEmail.getText().toString())){
+                        if (isValidDomain(mEmail.getText().toString())) {
                             editUserEmail();
-                        }else{
+                        } else {
                             Toast.makeText(SettingsActivity.this, "Invalid Domain", Toast.LENGTH_SHORT).show();
                         }
 
-                    }else{
+                    } else {
                         Toast.makeText(SettingsActivity.this, "Email and Current Password Fields Must be Filled to Save", Toast.LENGTH_SHORT).show();
                     }
                 }
-            }
+                    DatabaseReference reference = FirebaseDatabase.getInstance().getReference();
+                    //Changing Name of the user in the settings
+                    if(!mName.getText().toString().equals("")){
+                        reference.child(getString(R.string.dbnode_users))
+                                .child(FirebaseAuth.getInstance().getCurrentUser().getUid())
+                                .child(getString(R.string.field_name))
+                                .setValue(mName.getText().toString());
+
+                    }
+
+                    //Changing the Phone Number of the user in the settings
+                    if(!mPhone.getText().toString().equals("")){
+                        reference.child(getString(R.string.dbnode_users))
+                                .child(FirebaseAuth.getInstance().getCurrentUser().getUid())
+                                .child(getString(R.string.field_phone))
+                                .setValue(mPhone.getText().toString());
+
+                    }
+
+                }
+
         });
 
         mResetPasswordLink.setOnClickListener(new View.OnClickListener() {
@@ -150,12 +174,18 @@ public class SettingsActivity extends AppCompatActivity {
                                             @Override
                                             public void onComplete(@NonNull Task<SignInMethodQueryResult> task) {
                                                 if (task.isSuccessful()) {
+                                                    SignInMethodQueryResult result = task.getResult();
+                                                    List<String> signInMethods = result.getSignInMethods();
                                                     Log.d(TAG, "onComplete:" + task.getResult().getSignInMethods().size());
                                                     if (task.getResult().getSignInMethods().size() == 1) {
                                                         Log.d(TAG, "onComplete: That email is already in use.");
                                                         hideDialog();
                                                         Toast.makeText(SettingsActivity.this, "That email is already in use", Toast.LENGTH_SHORT).show();
-
+                                                        if(signInMethods.contains(EmailAuthProvider.EMAIL_LINK_SIGN_IN_METHOD)){
+                                                            //user can sign in with email/link password
+                                                        } else if (signInMethods.contains(EmailAuthProvider.EMAIL_PASSWORD_SIGN_IN_METHOD)){
+                                                            //user can sign in with email
+                                                        }
                                                     } else {
                                                         Log.d(TAG, "onComplete: That email is available.");
 
