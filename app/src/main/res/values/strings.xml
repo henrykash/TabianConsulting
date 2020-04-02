@@ -70,6 +70,7 @@
     <string name="field_chatroom_messages">chatroom_messages</string>
     <string name="field_message">message</string>
     <string name="field_timestamp">timestamp</string>
+    <string name="new_message">new message...</string>
 
 </resources>
 

@@ -11,13 +11,13 @@
     <item
         android:id="@+id/optionAccountSettings"
         android:title="@string/account_settings"
-        app:showAsAction="always|withText"
+        app:showAsAction=""
         />
 
     <item
         android:id="@+id/optionChat"
         android:title="@string/chat"
-        app:showAsAction=""
+        app:showAsAction="always|withText"
         />
 
 </menu>
